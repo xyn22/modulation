@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 1: What is a wave?</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body)"></script>
 <style>
   :root {
     --bg: #111418;
@@ -37,7 +40,8 @@
     margin-top: 16px;
   }
   canvas { width: 100%; height: 280px; display: block; }
-  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 12px; }
+  @media (max-width: 700px) { .controls { grid-template-columns: 1fr; } }
   label { display: flex; justify-content: space-between; }
   output { font-variant-numeric: tabular-nums; font-weight: 600; }
   .amp output { color: var(--amp); }
@@ -47,8 +51,17 @@
   .freq input { accent-color: var(--period); }
   .readout { margin-top: 12px; font-size: 15px; }
   .readout b { color: var(--period); }
-  ol { padding-left: 20px; }
+  .phase output { color: var(--text); }
+  .phase input { accent-color: var(--text); }
+  ol, ul { padding-left: 20px; }
   li { margin: 4px 0; }
+  h2 { font-size: 18px; margin: 32px 0 0; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  pre { background: var(--bg); border: 1px solid var(--stroke); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 14px; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 0.92em; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  summary:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -70,6 +83,10 @@
         <label>Frequency (how fast) <output id="fOut"></output></label>
         <input id="f" type="range" min="1" max="8" step="1" value="2">
       </div>
+      <div class="phase">
+        <label>Phase φ (where it starts) <output id="pOut"></output></label>
+        <input id="p" type="range" min="0" max="360" step="15" value="0">
+      </div>
     </div>
     <div class="readout" id="readout"></div>
   </div>
@@ -81,25 +98,106 @@
   </div>
 
   <div class="panel">
-    <b>Reading the formula</b>
-    <p>The formula under the graph, <b>y(t) = A · sin(2π · f · t)</b>, is just these ideas written as maths. For now, read it as "a wave whose height is <b style="color:var(--amp)">A</b> and which repeats <b style="color:var(--period)">f</b> times per second". You do not need to understand the 2π yet.</p>
-  </div>
-
-  <div class="panel">
     <b>Try this</b>
     <ol>
       <li>Move only the amplitude slider. The wave gets taller or shorter, but the number of cycles stays the same.</li>
       <li>Move only the frequency slider. The height stays the same, but more cycles fit into the 1 second shown.</li>
       <li>Count the cycles on screen and check that the count equals the frequency.</li>
+      <li>Move the phase slider. The wave slides sideways without changing shape. At 90° the wave starts at its peak: it has become a cosine.</li>
     </ol>
+  </div>
+
+  <h2>The math</h2>
+
+  <div class="panel">
+    <h3>1. Radians and the unit circle</h3>
+    <p>Take a point moving around a circle of radius 1. Measure the angle \(\theta\) by the <b>length of arc</b> the point has travelled: that is an angle in <b>radians</b>. The full circumference is \(2\pi r = 2\pi\), so one full turn is \(2\pi\) radians (= 360°), half a turn is \(\pi\), a quarter turn is \(\pi/2\).</p>
+    <p>The point's coordinates are \((\cos\theta, \sin\theta)\). So \(\sin\theta\) is simply the <b>height</b> of a point going round a circle. Every full turn the height repeats, which is why
+    \[ \sin(\theta + 2\pi) = \sin\theta. \]
+    A sine wave is what you get when you plot that height while the point keeps going round.</p>
+  </div>
+
+  <div class="panel">
+    <h3>2. From angle to time: where \(2\pi f\) comes from</h3>
+    <p>Now let the point go round <b>\(f\) times per second</b>. Each turn is \(2\pi\) radians, so the angle grows by \(2\pi f\) radians every second:
+    \[ \theta(t) = 2\pi f\, t = \omega t, \qquad \omega = 2\pi f. \]
+    \(\omega\) (omega) is the <b>angular frequency</b> in radians per second; \(f\) is the ordinary frequency in turns (cycles) per second. They describe the same speed in different units, like km/h and m/s. Scaling the height by \(A\) gives the wave on this page:
+    \[ y(t) = A \sin(2\pi f t + \varphi). \]</p>
+    <p><b>Check the period.</b> One period later, \(t \to t + T\) with \(T = 1/f\):
+    \[ \sin\!\big(2\pi f (t + T) + \varphi\big) = \sin(2\pi f t + \varphi + 2\pi f T) = \sin(2\pi f t + \varphi + 2\pi) = \sin(2\pi f t + \varphi). \]
+    The \(2\pi\) is exactly what makes "one period" equal to "one full turn".</p>
+  </div>
+
+  <div class="panel">
+    <h3>3. Phase, and why sine and cosine are the same wave</h3>
+    <p>The phase \(\varphi\) is the starting angle at \(t = 0\): where on the circle the point starts. Changing it slides the wave sideways in time by \(\varphi / \omega\) seconds.</p>
+    <p>Cosine is just sine started a quarter turn ahead:
+    \[ \cos\theta = \sin\!\left(\theta + \tfrac{\pi}{2}\right), \qquad \sin\theta = \cos\!\left(\theta - \tfrac{\pi}{2}\right). \]
+    So "sine wave" and "cosine wave" are the same shape with different phases. Signal-processing books usually write signals with \(\cos\), and so will our code: \(x(t) = A\cos(2\pi f t + \varphi)\).</p>
+  </div>
+
+  <div class="panel">
+    <h3>4. A calculus refresher: how fast does a wave change?</h3>
+    <p>Differentiate with the chain rule (the derivative of \(\sin u\) is \(\cos u \cdot u'\)):
+    \[ \frac{d}{dt}\, A\sin(\omega t) = A\omega \cos(\omega t), \qquad \frac{d^2}{dt^2}\, A\sin(\omega t) = -\omega^2 A \sin(\omega t). \]</p>
+    <ul>
+      <li>The <b>slope</b> is proportional to \(\omega\): double the frequency and the wave changes twice as fast. That will matter when we build receivers that must follow fast signals.</li>
+      <li>The second line says \(y'' = -\omega^2 y\). That differential equation describes anything that oscillates: a mass on a spring, a pendulum, an LC circuit in a radio. Sinusoids are its solutions, which is why they appear everywhere in nature and in electronics.</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h3>Pen-and-paper exercises</h3>
+    <ol>
+      <li>A wave has \(f = 50\) Hz. What are \(T\) and \(\omega\)?</li>
+      <li>Convert 45°, 90° and 270° to radians.</li>
+      <li>What phase \(\varphi\) makes \(\sin(\omega t + \varphi)\) equal to \(-\sin(\omega t)\)?</li>
+      <li>What is the maximum slope of \(y(t) = 2\sin(2\pi \cdot 10\, t)\)?</li>
+    </ol>
+    <details>
+      <summary>Show answers</summary>
+      <ol>
+        <li>\(T = 1/50 = 20\) ms, \(\omega = 2\pi \cdot 50 \approx 314.2\) rad/s.</li>
+        <li>\(\pi/4\), \(\pi/2\), \(3\pi/2\).</li>
+        <li>\(\varphi = \pi\) (half a turn): \(\sin(\theta + \pi) = -\sin\theta\).</li>
+        <li>\(y' = 2 \cdot 2\pi \cdot 10 \cos(\cdot)\), so the maximum slope is \(40\pi \approx 125.7\) units per second.</li>
+      </ol>
+    </details>
+  </div>
+
+  <h2>Code</h2>
+
+  <div class="panel">
+    <h3>How a computer stores a wave: samples</h3>
+    <p>A computer cannot store a smooth curve. It stores the wave's value at evenly spaced instants, called <b>samples</b>. If we take \(f_s\) samples per second (the <b>sample rate</b>), the sample times are
+    \[ t_n = \frac{n}{f_s}, \qquad n = 0, 1, 2, \dots \]
+    and the stored signal is the list of numbers \(x[n] = A\cos(2\pi f\, t_n + \varphi)\). Audio commonly uses \(f_s = 48\,000\) samples per second. A whole lesson later covers how fast you must sample; for now, 48 kHz is plenty for any sound you can hear.</p>
+    <p>With NumPy you never loop over samples: build the array of all times, then apply <code>np.cos</code> to the whole array at once.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Exercise: implement <code>tone()</code></h3>
+    <p>This is the first piece of the project: a software AM radio built over the lessons (see <code>project/README.md</code> for setup).</p>
+    <ol>
+      <li>Open <code>project/radio/signals.py</code> and implement <code>tone(freq, duration, fs, amplitude, phase)</code>. A helper <code>time_axis(duration, fs)</code> already returns the array of \(t_n\).</li>
+      <li>Check it: <code>pytest tests/test_lesson01.py</code>. One test counts zero crossings: a wave at \(f\) Hz crosses zero \(2f\) times per second.</li>
+      <li>Hear and see it: <code>python -m examples.lesson01_tone</code> writes <code>lesson01_440Hz.wav</code> (the note A) and plots the first 10 ms with every sample shown as a dot.</li>
+    </ol>
+    <details>
+      <summary>Show solution</summary>
+<pre><code>def tone(freq, duration, fs, amplitude=1.0, phase=0.0):
+    t = time_axis(duration, fs)
+    return amplitude * np.cos(2 * np.pi * freq * t + phase)</code></pre>
+    </details>
   </div>
 
   <div class="panel">
     <b>Where we are heading</b>
     <ol>
-      <li><b>One wave (this lesson):</b> amplitude and frequency.</li>
-      <li><b>A slow wave and a fast wave side by side:</b> the "message" and the "carrier".</li>
-      <li><b>Making the fast wave's height follow the slow wave:</b> that is AM (amplitude modulation).</li>
+      <li><b>Waves (this lesson):</b> amplitude, frequency, phase, radians.</li>
+      <li><b>Message and carrier:</b> why radio needs a fast carrier, wavelength and antennas.</li>
+      <li><b>Amplitude modulation:</b> making the carrier's height follow the message.</li>
+      <li><b>Next:</b> trig identities reveal the AM spectrum, then sampling, demodulation, Fourier analysis, filters, and a working software receiver.</li>
     </ol>
   </div>
 
@@ -113,10 +211,12 @@
 
   function render() {
     const A = +$('a').value, f = +$('f').value, T = 1 / f;
+    const deg = +$('p').value, phi = deg * Math.PI / 180;
     $('aOut').textContent = A.toFixed(1);
     $('fOut').textContent = f + ' Hz';
+    $('pOut').textContent = `${deg}° = ${(deg / 180).toFixed(2)}π rad`;
     $('readout').innerHTML =
-      `Wave: y(t) = ${A.toFixed(1)} · sin(2π · ${f} · t) &nbsp;&nbsp; ` +
+      `Wave: y(t) = ${A.toFixed(1)} · sin(2π · ${f} · t + ${(deg / 180).toFixed(2)}π) &nbsp;&nbsp; ` +
       `<b>${f}</b> cycles per second, so each cycle takes <b>${(T * 1000).toFixed(0)} ms</b> (period = 1 ÷ ${f}).`;
 
     const dpr = window.devicePixelRatio || 1;
@@ -160,13 +260,13 @@
     ctx.strokeStyle = C.wave; ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let i = 0; i <= 1000; i++) {
-      const t = i / 1000, y = A * Math.sin(2 * Math.PI * f * t);
+      const t = i / 1000, y = A * Math.sin(2 * Math.PI * f * t + phi);
       i ? ctx.lineTo(X(t), Y(y)) : ctx.moveTo(X(t), Y(y));
     }
     ctx.stroke();
 
-    // Amplitude marker at the first peak.
-    const tp = T / 4;
+    // Amplitude marker at the first peak, where 2πft + φ = π/2 (mod 2π).
+    const tp = (((0.25 - phi / (2 * Math.PI)) % 1) + 1) % 1 * T;
     ctx.strokeStyle = C.amp; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
     ctx.beginPath(); ctx.moveTo(X(tp), Y(0)); ctx.lineTo(X(tp), Y(A)); ctx.stroke();
     ctx.setLineDash([]);
@@ -176,6 +276,7 @@
 
   $('a').addEventListener('input', render);
   $('f').addEventListener('input', render);
+  $('p').addEventListener('input', render);
   window.addEventListener('resize', render);
   render();
 })();

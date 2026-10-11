@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 3: Putting the message onto the carrier (AM)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body)"></script>
 <style>
   :root {
     --bg: #111418;
@@ -54,8 +57,15 @@
   .toggle { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; font-size: 14px; cursor: pointer; }
   .readout { margin-top: 12px; font-size: 15px; }
   .steps { font-family: "Cambria Math", "Times New Roman", serif; font-size: 18px; line-height: 2; }
-  ol { padding-left: 20px; }
+  ol, ul { padding-left: 20px; }
   li { margin: 4px 0; }
+  h2.section { font-size: 18px; margin: 32px 0 0; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  pre { background: var(--bg); border: 1px solid var(--stroke); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 14px; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 0.92em; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  summary:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -137,9 +147,100 @@
     </ol>
   </div>
 
+  <h2 class="section">The math</h2>
+
+  <div class="panel">
+    <h3>1. The standard form</h3>
+    <p>Textbooks write AM with cosines (lesson 1: same wave, different phase) and a carrier amplitude \(A_c\):
+    \[ s(t) = A_c\,\big[\,1 + \mu\, m(t)\,\big]\cos(2\pi f_c t), \qquad |m(t)| \le 1. \]</p>
+    <ul>
+      <li>\(m(t)\) is the message, <b>normalised</b> so its peaks are at \(\pm 1\). Any real audio signal can be scaled this way.</li>
+      <li>\(\mu\) is the modulation index (the depth slider, as a number: 50% means \(\mu = 0.5\)).</li>
+      <li>For a single tone \(m(t) = \cos(2\pi f_m t)\). Sometimes this is written with the message amplitude: \(A_c + A_m\cos(2\pi f_m t)\) gives \(\mu = A_m / A_c\).</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h3>2. Why the envelope is an exact copy of the message</h3>
+    <p>Write \(a(t) = A_c[1 + \mu m(t)]\), so \(s(t) = a(t)\cos(2\pi f_c t)\). Because \(f_c \gg f_m\) (lesson 2), \(a(t)\) is almost constant over each carrier cycle, and within that cycle \(\cos\) swings between \(+1\) and \(-1\). So the peaks of \(s\) trace \(\pm|a(t)|\): the <b>envelope</b> is \(|a(t)|\).</p>
+    <p>If \(\mu \le 1\), then \(1 + \mu m(t) \ge 1 - \mu \ge 0\), the absolute value does nothing, and
+    \[ \text{envelope}(t) = A_c + A_c\,\mu\, m(t). \]
+    That is the message, scaled by \(A_c\mu\) and shifted up by a constant \(A_c\). A receiver that traces the envelope and removes the constant gets the message back. If \(\mu > 1\), \(1 + \mu m(t)\) goes negative at times, the absolute value folds it, and the envelope is no longer a copy of the message. That is over-modulation, covered in lesson 4.</p>
+  </div>
+
+  <div class="panel">
+    <h3>3. Measuring \(\mu\) from the waveform</h3>
+    <p>For a tone, the envelope's largest and smallest values are \(E_{max} = A_c(1 + \mu)\) and \(E_{min} = A_c(1 - \mu)\). Subtract and add:
+    \[ E_{max} - E_{min} = 2A_c\mu, \qquad E_{max} + E_{min} = 2A_c \quad\Longrightarrow\quad \mu = \frac{E_{max} - E_{min}}{E_{max} + E_{min}}. \]
+    \(A_c\) cancels, so you can measure the depth of any AM signal on an oscilloscope without knowing how strong the carrier is. You will implement exactly this below.</p>
+  </div>
+
+  <div class="panel">
+    <h3>4. Why the "1 +"?</h3>
+    <p>Drop the 1 and you get \(s(t) = A_c\,\mu\, m(t)\cos(2\pi f_c t)\): just the message times the carrier. Its envelope is \(|m(t)|\), which folds every negative half of the message upwards, so tracing the envelope no longer recovers the message. The "1 +" is a constant added to the message, which lifts it above zero so the envelope stays faithful. The price: that constant is a pure carrier that carries no information but uses power. Later lessons quantify this cost and show the schemes that avoid it (DSB-SC and SSB), which need smarter receivers.</p>
+  </div>
+
+  <div class="panel">
+    <h3>5. A teaser: what frequencies are in \(s(t)\)?</h3>
+    <p>Expand the tone case: \(s(t) = A_c\cos(2\pi f_c t) + A_c\mu\cos(2\pi f_m t)\cos(2\pi f_c t)\). The second term is a <b>product of two cosines</b>. Lesson 4 uses the product-to-sum identity
+    \[ \cos a\cos b = \tfrac12\big[\cos(a - b) + \cos(a + b)\big] \]
+    to show that \(s(t)\) is really just three pure tones: \(f_c\), \(f_c - f_m\) and \(f_c + f_m\). Try deriving it yourself first: it is a two-line calculation.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Pen-and-paper exercises</h3>
+    <ol>
+      <li>An oscilloscope shows an AM envelope between 0.4 V and 1.6 V. What are \(\mu\) and \(A_c\)?</li>
+      <li>For \(A_c = 2\) and \(\mu = 0.25\), what are \(E_{max}\) and \(E_{min}\)?</li>
+      <li>Derive the three-tone form of \(s(t)\) from section 5.</li>
+    </ol>
+    <details>
+      <summary>Show answers</summary>
+      <ol>
+        <li>\(\mu = (1.6 - 0.4)/(1.6 + 0.4) = 0.6\); \(A_c = (E_{max} + E_{min})/2 = 1\) V.</li>
+        <li>\(E_{max} = 2(1.25) = 2.5\), \(E_{min} = 2(0.75) = 1.5\).</li>
+        <li>\(s(t) = A_c\cos(2\pi f_c t) + \tfrac{A_c\mu}{2}\cos(2\pi(f_c - f_m)t) + \tfrac{A_c\mu}{2}\cos(2\pi(f_c + f_m)t)\). Lesson 4 explains what this means.</li>
+      </ol>
+    </details>
+  </div>
+
+  <h2 class="section">Code</h2>
+
+  <div class="panel">
+    <h3>Exercise: your first AM transmitter</h3>
+    <ol>
+      <li>In <code>project/radio/am.py</code>, implement <code>am_modulate(message, fc, fs, mu, carrier_amplitude)</code>. The sample times are \(t_n = n / f_s\) for each sample of <code>message</code>.</li>
+      <li>Implement <code>estimate_modulation_index(signal, fc, fs)</code>, a crude envelope detector:
+        <ul>
+          <li>Cut the signal into chunks one carrier period long (\(f_s / f_c\) samples).</li>
+          <li>The peak of \(|s|\) in each chunk is one envelope sample.</li>
+          <li>Apply \(\mu = (E_{max} - E_{min})/(E_{max} + E_{min})\).</li>
+        </ul>
+        Hint: <code>reshape(-1, period)</code> then <code>max(axis=1)</code> does the chunking without a loop.</li>
+      <li>Check: <code>pytest tests/test_lesson03.py</code>.</li>
+      <li>Run <code>python -m examples.lesson03_am</code>. It writes <code>lesson03_am.wav</code>: a 6 kHz carrier whose loudness pulses 150 times a second. Listen for the pulsing: that is the envelope. It also plots the signal with its envelope and prints your estimate of \(\mu\).</li>
+    </ol>
+    <details>
+      <summary>Show solution</summary>
+<pre><code>def am_modulate(message, fc, fs, mu, carrier_amplitude=1.0):
+    t = np.arange(len(message)) / fs
+    return carrier_amplitude * (1 + mu * np.asarray(message)) * np.cos(2 * np.pi * fc * t)
+
+
+def estimate_modulation_index(signal, fc, fs):
+    period = int(round(fs / fc))
+    usable = len(signal) // period * period
+    chunks = np.abs(signal[:usable]).reshape(-1, period)
+    envelope = chunks.max(axis=1)
+    e_max, e_min = envelope.max(), envelope.min()
+    return (e_max - e_min) / (e_max + e_min)</code></pre>
+      <p class="muted">This envelope detector is crude: if \(f_s / f_c\) is not a whole number, or there are few samples per carrier cycle, it misses the true peaks slightly. A later lesson builds a proper one.</p>
+    </details>
+  </div>
+
   <div class="panel">
     <b>Coming next</b>
-    <p>In lesson 4 we push the depth past 100% (called <b>over-modulation</b>) and see why the receiver can no longer get the message back correctly.</p>
+    <p>Lesson 4 applies the product-to-sum identity to reveal the <b>spectrum</b> of AM: the carrier plus two <b>sidebands</b>. From that we get the bandwidth an AM station needs, how its power splits between carrier and message, and what over-modulation (\(\mu > 1\)) does, both on the waveform and in the spectrum.</p>
   </div>
 
 <script>

@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lesson 2: A slow wave and a fast wave</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body)"></script>
 <style>
   :root {
     --bg: #111418;
@@ -46,8 +49,18 @@
   .msg input { accent-color: var(--message); }
   .car input { accent-color: var(--carrier); }
   .readout { margin-top: 12px; font-size: 15px; }
-  ol { padding-left: 20px; }
+  ol, ul { padding-left: 20px; }
   li { margin: 4px 0; }
+  h2.section { font-size: 18px; margin: 32px 0 0; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  table { border-collapse: collapse; margin: 8px 0; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 14px 4px 0; border-bottom: 1px solid var(--stroke); text-align: left; }
+  th { color: var(--muted); font-weight: 500; }
+  pre { background: var(--bg); border: 1px solid var(--stroke); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 14px; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 0.92em; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  summary:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -98,6 +111,76 @@
       <li>Lower the carrier frequency until it is close to the message frequency. The two waves start to look alike, so the carrier is no longer clearly "fast". Real carriers are thousands to millions of times faster than the message.</li>
       <li>Notice that changing one wave does not affect the other. They are still separate. In lesson 3 we will combine them.</li>
     </ol>
+  </div>
+
+  <h2 class="section">The math</h2>
+
+  <div class="panel">
+    <h3>1. Two time scales</h3>
+    <p>Write both waves with the notation from lesson 1, using cosines:
+    \[ m(t) = \cos(2\pi f_m t), \qquad c(t) = \cos(2\pi f_c t), \qquad f_c \gg f_m. \]
+    Their periods are \(T_m = 1/f_m\) and \(T_c = 1/f_c\), so the number of carrier cycles inside one message cycle is
+    \[ \frac{T_m}{T_c} = \frac{f_c}{f_m}. \]
+    For a real AM station, \(f_c \approx 1\) MHz and voice is around \(f_m \approx 1\) kHz: about 1000 carrier cycles per message cycle. Over one carrier cycle the message barely moves, so it looks constant. This separation of time scales is what makes AM work, and the lesson-3 envelope only makes sense because of it.</p>
+  </div>
+
+  <div class="panel">
+    <h3>2. Wavelength: the antenna argument in numbers</h3>
+    <p>A radio wave travels at the speed of light \(c \approx 3 \times 10^8\) m/s. In one period \(T\) it travels one <b>wavelength</b>:
+    \[ \lambda = c\,T = \frac{c}{f}. \]
+    A simple, efficient antenna is about a quarter of a wavelength long, \(\lambda / 4\). Plugging in numbers:</p>
+    <table>
+      <tr><th>Signal</th><th>\(f\)</th><th>\(\lambda\)</th><th>Antenna \(\lambda/4\)</th></tr>
+      <tr><td>Voice</td><td>1 kHz</td><td>300 km</td><td>75 km</td></tr>
+      <tr><td>AM radio</td><td>1 MHz</td><td>300 m</td><td>75 m</td></tr>
+      <tr><td>FM radio</td><td>100 MHz</td><td>3 m</td><td>75 cm</td></tr>
+      <tr><td>Wi-Fi</td><td>2.4 GHz</td><td>12.5 cm</td><td>3.1 cm</td></tr>
+    </table>
+    <p>A 75 km antenna is impossible, which is exactly why voice must ride on a fast carrier. It also explains why AM broadcast masts are tall towers, while a phone's antennas hide inside the case.</p>
+  </div>
+
+  <div class="panel">
+    <h3>3. Sharing the air: a preview</h3>
+    <p>Two stations on different carriers, \(\cos(2\pi f_1 t)\) and \(\cos(2\pi f_2 t)\), simply add up in the air. Why can a receiver separate them again? The key fact (proved with calculus in a later Fourier lesson) is that sinusoids of different frequencies are <b>orthogonal</b> over a long time:
+    \[ \frac{1}{T}\int_0^{T} \cos(2\pi f_1 t)\cos(2\pi f_2 t)\,dt \;\longrightarrow\; 0 \quad (f_1 \ne f_2,\; T \to \infty). \]
+    Multiplying by one frequency and averaging "picks out" that frequency and rejects the others. Tuning a radio is built on this idea.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Pen-and-paper exercises</h3>
+    <ol>
+      <li>An aircraft radio uses 120 MHz. What is its wavelength, and how long is a quarter-wave antenna?</li>
+      <li>A carrier at 600 kHz carries a 3 kHz tone. How many carrier cycles fit in one message cycle?</li>
+      <li>Compute \(\frac{1}{T}\int_0^{T}\cos^2(2\pi f t)\,dt\) for \(T = 1/f\). (Hint: \(\cos^2 x = \tfrac12(1 + \cos 2x)\).) Compare with the preview above: what happens when \(f_1 = f_2\)?</li>
+    </ol>
+    <details>
+      <summary>Show answers</summary>
+      <ol>
+        <li>\(\lambda = 3\times10^8 / 1.2\times10^8 = 2.5\) m; antenna \(\approx 62.5\) cm.</li>
+        <li>\(600\,000 / 3\,000 = 200\).</li>
+        <li>\(\frac{1}{T}\int_0^T \tfrac12\,dt + \frac{1}{T}\int_0^T \tfrac12\cos(4\pi f t)\,dt = \tfrac12 + 0 = \tfrac12\). The second integral covers two full cycles, so it is zero. With equal frequencies the average is \(\tfrac12\), not 0: the same frequency "matches" itself. That contrast is exactly how a receiver tells frequencies apart.</li>
+      </ol>
+    </details>
+  </div>
+
+  <h2 class="section">Code</h2>
+
+  <div class="panel">
+    <h3>Exercise: wavelength and antenna length</h3>
+    <ol>
+      <li>In <code>project/radio/signals.py</code>, implement <code>wavelength(freq)</code> and <code>quarter_wave_antenna(freq)</code>. A constant <code>SPEED_OF_LIGHT</code> is provided. They should also work when <code>freq</code> is a NumPy array (they will, if you only use arithmetic).</li>
+      <li>Check: <code>pytest tests/test_lesson02.py</code>.</li>
+      <li>Run <code>python -m examples.lesson02_waves</code>. It prints the antenna table above, then writes a 300 Hz "message" and a 6 kHz "carrier" as WAV files so you can hear the difference between slow and fast. It uses your <code>tone()</code> from lesson 1.</li>
+    </ol>
+    <details>
+      <summary>Show solution</summary>
+<pre><code>def wavelength(freq):
+    return SPEED_OF_LIGHT / freq
+
+
+def quarter_wave_antenna(freq):
+    return wavelength(freq) / 4</code></pre>
+    </details>
   </div>
 
   <div class="panel">

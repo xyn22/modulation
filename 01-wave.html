@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1: What is a wave?</title>
+<style>
+  :root {
+    --bg: #111418;
+    --panel: #181c22;
+    --stroke: #2a3039;
+    --text: #e3e6ea;
+    --muted: #8b94a1;
+    --wave: #4fa3ff;
+    --amp: #e8c547;
+    --period: #5fd38d;
+  }
+  body {
+    margin: 0 auto;
+    max-width: 900px;
+    padding: 24px;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  nav { display: flex; justify-content: flex-end; font-size: 14px; margin-bottom: 16px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--text); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  canvas { width: 100%; height: 280px; display: block; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+  label { display: flex; justify-content: space-between; }
+  output { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .amp output { color: var(--amp); }
+  .freq output { color: var(--period); }
+  input[type=range] { width: 100%; }
+  .amp input { accent-color: var(--amp); }
+  .freq input { accent-color: var(--period); }
+  .readout { margin-top: 12px; font-size: 15px; }
+  .readout b { color: var(--period); }
+  ol { padding-left: 20px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="02-message-and-carrier.html">Lesson 2: A slow wave and a fast wave &rarr;</a>
+  </nav>
+
+  <h1>Lesson 1: What is a wave?</h1>
+  <p class="muted">A wave is something that goes up and down, again and again, in a regular pattern. Only two numbers describe this simple wave.</p>
+
+  <div class="panel">
+    <canvas id="plot"></canvas>
+    <div class="controls">
+      <div class="amp">
+        <label>Amplitude (how tall) <output id="aOut"></output></label>
+        <input id="a" type="range" min="0.2" max="2" step="0.1" value="1">
+      </div>
+      <div class="freq">
+        <label>Frequency (how fast) <output id="fOut"></output></label>
+        <input id="f" type="range" min="1" max="8" step="1" value="2">
+      </div>
+    </div>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="panel">
+    <p><b style="color:var(--amp)">Amplitude</b> is how far the wave goes up (and down) from the middle line. In sound, bigger amplitude means louder.</p>
+    <p><b style="color:var(--period)">Frequency</b> is how many full up-and-down cycles happen in one second, measured in hertz (Hz). In sound, higher frequency means a higher pitch.</p>
+    <p><b style="color:var(--period)">Period</b> is the time one full cycle takes. It is just 1 ÷ frequency: faster waves have shorter cycles.</p>
+  </div>
+
+  <div class="panel">
+    <b>Try this</b>
+    <ol>
+      <li>Move only the amplitude slider. The wave gets taller or shorter, but the number of cycles stays the same.</li>
+      <li>Move only the frequency slider. The height stays the same, but more cycles fit into the 1 second shown.</li>
+      <li>Count the cycles on screen and check that the count equals the frequency.</li>
+    </ol>
+  </div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { stroke: css('--stroke'), muted: css('--muted'), wave: css('--wave'), amp: css('--amp'), period: css('--period') };
+  const canvas = $('plot');
+  const Y_MAX = 2.3;
+
+  function render() {
+    const A = +$('a').value, f = +$('f').value, T = 1 / f;
+    $('aOut').textContent = A.toFixed(1);
+    $('fOut').textContent = f + ' Hz';
+    $('readout').innerHTML =
+      `Wave: y(t) = ${A.toFixed(1)} · sin(2π · ${f} · t) &nbsp;&nbsp; ` +
+      `<b>${f}</b> cycles per second, so each cycle takes <b>${(T * 1000).toFixed(0)} ms</b> (period = 1 ÷ ${f}).`;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pad = { l: 44, r: 12, t: 12, b: 36 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const X = t => pad.l + t * pw;
+    const Y = y => pad.t + (1 - (y + Y_MAX) / (2 * Y_MAX)) * ph;
+
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.stroke; ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      ctx.beginPath(); ctx.moveTo(X(t), pad.t); ctx.lineTo(X(t), pad.t + ph); ctx.stroke();
+      ctx.fillText(t.toFixed(1), X(t), pad.t + ph + 4);
+    }
+    ctx.fillText('Time (seconds)', pad.l + pw / 2, pad.t + ph + 20);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const y of [-2, -1, 0, 1, 2]) {
+      ctx.strokeStyle = y === 0 ? C.muted : C.stroke;
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(y)); ctx.lineTo(pad.l + pw, Y(y)); ctx.stroke();
+      ctx.fillText(y, pad.l - 8, Y(y));
+    }
+
+    // The first cycle, highlighted.
+    ctx.fillStyle = C.period; ctx.globalAlpha = 0.12;
+    ctx.fillRect(X(0), pad.t, X(T) - X(0), ph);
+    ctx.globalAlpha = 1;
+    const by = pad.t + 10;
+    ctx.strokeStyle = C.period; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(X(0), by); ctx.lineTo(X(T), by); ctx.stroke();
+    ctx.fillStyle = C.period; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`1 cycle = ${(T * 1000).toFixed(0)} ms`, X(0) + 4, by + 4);
+
+    ctx.strokeStyle = C.wave; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 1000; i++) {
+      const t = i / 1000, y = A * Math.sin(2 * Math.PI * f * t);
+      i ? ctx.lineTo(X(t), Y(y)) : ctx.moveTo(X(t), Y(y));
+    }
+    ctx.stroke();
+
+    // Amplitude marker at the first peak.
+    const tp = T / 4;
+    ctx.strokeStyle = C.amp; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(X(tp), Y(0)); ctx.lineTo(X(tp), Y(A)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.amp; ctx.textBaseline = 'middle';
+    ctx.fillText(`amplitude ${A.toFixed(1)}`, X(tp) + 6, Y(A / 2));
+  }
+
+  $('a').addEventListener('input', render);
+  $('f').addEventListener('input', render);
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>

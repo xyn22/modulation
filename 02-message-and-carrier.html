@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2: A slow wave and a fast wave</title>
+<style>
+  :root {
+    --bg: #111418;
+    --panel: #181c22;
+    --stroke: #2a3039;
+    --text: #e3e6ea;
+    --muted: #8b94a1;
+    --message: #4fa3ff;
+    --carrier: #e8c547;
+  }
+  body {
+    margin: 0 auto;
+    max-width: 900px;
+    padding: 24px;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  nav { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 16px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--text); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 4px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  canvas { width: 100%; height: 170px; display: block; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px; }
+  label { display: flex; justify-content: space-between; }
+  output { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .msg output, .msg-text { color: var(--message); }
+  .car output, .car-text { color: var(--carrier); }
+  input[type=range] { width: 100%; }
+  .msg input { accent-color: var(--message); }
+  .car input { accent-color: var(--carrier); }
+  .readout { margin-top: 12px; font-size: 15px; }
+  ol { padding-left: 20px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="01-wave.html">&larr; Lesson 1: What is a wave?</a>
+  </nav>
+
+  <h1>Lesson 2: A slow wave and a fast wave</h1>
+  <p class="muted">Radio always involves two waves: a slow one that holds the information, and a fast one that carries it through the air.</p>
+
+  <div class="panel">
+    <h2 class="msg-text">The message (slow wave)</h2>
+    <p class="muted">The information you want to send, such as a voice or music. Here it is a single simple wave.</p>
+    <canvas id="msgPlot"></canvas>
+
+    <h2 class="car-text" style="margin-top:16px">The carrier (fast wave)</h2>
+    <p class="muted">A fast, steady wave produced by the radio transmitter. On its own it carries no information: it always looks the same.</p>
+    <canvas id="carPlot"></canvas>
+
+    <div class="controls">
+      <div class="msg">
+        <label>Message frequency <output id="fmOut"></output></label>
+        <input id="fm" type="range" min="1" max="4" step="1" value="2">
+      </div>
+      <div class="car">
+        <label>Carrier frequency <output id="fcOut"></output></label>
+        <input id="fc" type="range" min="4" max="40" step="2" value="20">
+      </div>
+    </div>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Why do we need a carrier at all?</h2>
+    <p>Why not send the voice wave through the air directly? There are two reasons:</p>
+    <ol>
+      <li><b>Antennas only work well with fast waves.</b> To send a slow wave like a voice, an antenna would have to be many kilometres long. Fast waves can be sent with antennas a few metres long, or even small enough to fit in a phone.</li>
+      <li><b>Sharing the air.</b> If every station sent plain voice, all the signals would mix together and nobody could separate them. Instead, each station uses its own carrier frequency. Tuning your radio means choosing which carrier frequency to listen to.</li>
+    </ol>
+    <p>So the plan is: <b>put the slow message onto the fast carrier</b>, send the carrier, and let the receiver take the message back off. Putting the message onto the carrier is called <b>modulation</b>.</p>
+  </div>
+
+  <div class="panel">
+    <b>Try this</b>
+    <ol>
+      <li>Look at the readout under the sliders. It says how many carrier cycles fit inside one message cycle.</li>
+      <li>Lower the carrier frequency until it is close to the message frequency. The two waves start to look alike, so the carrier is no longer clearly "fast". Real carriers are thousands to millions of times faster than the message.</li>
+      <li>Notice that changing one wave does not affect the other. They are still separate. In lesson 3 we will combine them.</li>
+    </ol>
+  </div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { stroke: css('--stroke'), muted: css('--muted'), message: css('--message'), carrier: css('--carrier') };
+  const Y_MAX = 1.4;
+
+  function plot(canvas, f, color) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pad = { l: 36, r: 12, t: 8, b: 36 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const X = t => pad.l + t * pw;
+    const Y = y => pad.t + (1 - (y + Y_MAX) / (2 * Y_MAX)) * ph;
+
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.stroke; ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      ctx.beginPath(); ctx.moveTo(X(t), pad.t); ctx.lineTo(X(t), pad.t + ph); ctx.stroke();
+      ctx.fillText(t.toFixed(1), X(t), pad.t + ph + 4);
+    }
+    ctx.fillText('Time (seconds)', pad.l + pw / 2, pad.t + ph + 20);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const y of [-1, 0, 1]) {
+      ctx.strokeStyle = y === 0 ? C.muted : C.stroke;
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(y)); ctx.lineTo(pad.l + pw, Y(y)); ctx.stroke();
+      ctx.fillText(y, pad.l - 8, Y(y));
+    }
+
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 2000; i++) {
+      const t = i / 2000, y = Math.sin(2 * Math.PI * f * t);
+      i ? ctx.lineTo(X(t), Y(y)) : ctx.moveTo(X(t), Y(y));
+    }
+    ctx.stroke();
+  }
+
+  function render() {
+    const fm = +$('fm').value, fc = +$('fc').value;
+    $('fmOut').textContent = fm + ' Hz';
+    $('fcOut').textContent = fc + ' Hz';
+    const ratio = fc / fm;
+    $('readout').innerHTML =
+      `The carrier is <b>${+ratio.toFixed(1)}×</b> faster than the message: ` +
+      `<span class="car-text">${+ratio.toFixed(1)} carrier cycles</span> fit inside ` +
+      `<span class="msg-text">one message cycle</span>.`;
+    plot($('msgPlot'), fm, C.message);
+    plot($('carPlot'), fc, C.carrier);
+  }
+
+  $('fm').addEventListener('input', render);
+  $('fc').addEventListener('input', render);
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>

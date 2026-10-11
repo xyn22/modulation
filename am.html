@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AM Modulation Visualizer</title>
+<style>
+  :root {
+    --bg: #111418;
+    --panel: #181c22;
+    --stroke: #2a3039;
+    --text: #e3e6ea;
+    --muted: #8b94a1;
+    --message: #4fa3ff;
+    --carrier: #9aa3ad;
+    --am: #e8c547;
+    --envelope: #ff6b6b;
+    --detected: #5fd38d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header { padding: 20px 24px 8px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 2px; }
+  .formula {
+    font-family: "Cambria Math", "Times New Roman", serif;
+    font-size: 19px;
+    margin: 6px 0 0;
+  }
+  .formula .m { color: var(--message); }
+  .formula .c { color: var(--carrier); }
+  .muted { color: var(--muted); }
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 16px;
+    padding: 12px 24px 24px;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  aside {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 16px;
+    align-self: start;
+    position: sticky;
+    top: 12px;
+  }
+  .control { margin-bottom: 14px; }
+  .control label { display: flex; justify-content: space-between; }
+  .control output { font-variant-numeric: tabular-nums; color: var(--am); }
+  input[type=range] { width: 100%; accent-color: var(--am); }
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 16px; }
+  button {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 3px 0; border-bottom: 1px solid var(--stroke); }
+  td:last-child { text-align: right; }
+  .status { margin-top: 12px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--stroke); font-size: 13px; }
+  .status.bad { border-color: var(--envelope); color: var(--envelope); }
+  .status.ok { border-color: var(--detected); color: var(--detected); }
+  .plots { display: grid; gap: 14px; min-width: 0; }
+  .plot { background: var(--panel); border: 1px solid var(--stroke); border-radius: 8px; padding: 12px 14px; }
+  .plot p { margin: 0 0 6px; font-size: 13px; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 4px; flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 2px; margin-right: 5px; vertical-align: middle; background: var(--sw); }
+  .legend span.dash::before { background: repeating-linear-gradient(90deg, var(--sw) 0 4px, transparent 4px 7px); }
+  canvas { width: 100%; height: 190px; display: block; }
+  .plot.tall canvas { height: 240px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Amplitude Modulation (AM, DSB with full carrier)</h1>
+  <div class="formula">
+    s(t) = A<sub>c</sub> [ 1 + μ · <span class="m">cos(2π f<sub>m</sub> t)</span> ] · <span class="c">cos(2π f<sub>c</sub> t)</span>,
+    &nbsp;&nbsp; μ = A<sub>m</sub> / A<sub>c</sub>
+  </div>
+  <div class="muted">Move a slider and every plot and number updates. Time axis is in milliseconds, frequency axis in kHz.</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="control">
+      <label><span>Carrier amplitude A<sub>c</sub></span> <output id="AcOut"></output></label>
+      <input id="Ac" type="range" min="0.2" max="2" step="0.05" value="1">
+    </div>
+    <div class="control">
+      <label><span>Message amplitude A<sub>m</sub></span> <output id="AmOut"></output></label>
+      <input id="Am" type="range" min="0" max="3" step="0.05" value="0.5">
+    </div>
+    <div class="control">
+      <label><span>Message frequency f<sub>m</sub></span> <output id="fmOut"></output></label>
+      <input id="fm" type="range" min="0.2" max="5" step="0.1" value="1">
+    </div>
+    <div class="control">
+      <label><span>Carrier frequency f<sub>c</sub></span> <output id="fcOut"></output></label>
+      <input id="fc" type="range" min="1" max="40" step="0.5" value="15">
+    </div>
+    <div class="control">
+      <label><span>Time window shown</span> <output id="winOut"></output></label>
+      <input id="win" type="range" min="1" max="10" step="0.5" value="3">
+    </div>
+
+    <h2>Presets</h2>
+    <div class="presets">
+      <button data-preset="under">Under (μ = 0.5)</button>
+      <button data-preset="full">100% (μ = 1)</button>
+      <button data-preset="over">Over (μ = 1.5)</button>
+      <button data-preset="slowc">f<sub>c</sub> too low</button>
+    </div>
+
+    <h2>Derived values</h2>
+    <table>
+      <tr><td>Modulation index μ</td><td id="mu"></td></tr>
+      <tr><td>Envelope max A<sub>c</sub>(1+μ)</td><td id="emax"></td></tr>
+      <tr><td>Envelope min A<sub>c</sub>(1−μ)</td><td id="emin"></td></tr>
+      <tr><td>Bandwidth 2f<sub>m</sub></td><td id="bw"></td></tr>
+      <tr><td>Carrier power A<sub>c</sub>²/2</td><td id="pc"></td></tr>
+      <tr><td>Sideband power A<sub>c</sub>²μ²/4</td><td id="psb"></td></tr>
+      <tr><td>Efficiency μ²/(2+μ²)</td><td id="eff"></td></tr>
+    </table>
+    <div id="status" class="status"></div>
+    <div class="muted" style="font-size:12px;margin-top:8px">Power assumes a 1 Ω load, normalized units.</div>
+  </aside>
+
+  <main class="plots">
+    <section class="plot">
+      <h2>1. Message m(t) = A<sub>m</sub> cos(2π f<sub>m</sub> t)</h2>
+      <p class="muted">The information you want to send (e.g. audio). It is slow compared to the carrier.</p>
+      <canvas id="cMsg"></canvas>
+    </section>
+
+    <section class="plot">
+      <h2>2. Carrier c(t) = A<sub>c</sub> cos(2π f<sub>c</sub> t)</h2>
+      <p class="muted">A fast, pure sinusoid. On its own it carries no information; it is the "vehicle".</p>
+      <canvas id="cCar"></canvas>
+    </section>
+
+    <section class="plot tall">
+      <h2>3. AM signal s(t) and its envelope</h2>
+      <p class="muted">The carrier's amplitude follows A<sub>c</sub>(1 + μ cos 2π f<sub>m</sub>t). When μ &gt; 1 that term goes negative, the carrier phase flips, and the envelope no longer matches the message.</p>
+      <div class="legend">
+        <span style="--sw:var(--am)">s(t)</span>
+        <span class="dash" style="--sw:var(--envelope)">±A<sub>c</sub>(1 + μ cos 2π f<sub>m</sub>t), ideal envelope</span>
+      </div>
+      <canvas id="cAm"></canvas>
+    </section>
+
+    <section class="plot">
+      <h2>4. What an envelope detector recovers</h2>
+      <p class="muted">A simple receiver (diode + RC filter) outputs |A<sub>c</sub>(1 + μ m̂(t))|. It matches the ideal envelope only while μ ≤ 1.</p>
+      <div class="legend">
+        <span style="--sw:var(--detected)">Detected envelope |A<sub>c</sub>(1 + μ cos 2π f<sub>m</sub>t)|</span>
+        <span class="dash" style="--sw:var(--envelope)">Ideal A<sub>c</sub>(1 + μ cos 2π f<sub>m</sub>t)</span>
+      </div>
+      <canvas id="cDet"></canvas>
+    </section>
+
+    <section class="plot">
+      <h2>5. Amplitude spectrum |S(f)| (single-sided)</h2>
+      <p class="muted">Expanding the formula gives three pure tones: the carrier at f<sub>c</sub> with amplitude A<sub>c</sub>, and two sidebands at f<sub>c</sub> ± f<sub>m</sub> with amplitude A<sub>c</sub>μ/2 each. The information lives only in the sidebands.</p>
+      <div class="legend">
+        <span style="--sw:var(--carrier)">Carrier</span>
+        <span style="--sw:var(--am)">Sidebands (LSB, USB)</span>
+      </div>
+      <canvas id="cSpec"></canvas>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const COLORS = {
+    stroke: css('--stroke'), muted: css('--muted'), text: css('--text'),
+    message: css('--message'), carrier: css('--carrier'), am: css('--am'),
+    envelope: css('--envelope'), detected: css('--detected'),
+  };
+  const inputs = ['Ac', 'Am', 'fm', 'fc', 'win'].map($);
+
+  const PRESETS = {
+    under: { Ac: 1, Am: 0.5, fm: 1, fc: 15 },
+    full:  { Ac: 1, Am: 1,   fm: 1, fc: 15 },
+    over:  { Ac: 1, Am: 1.5, fm: 1, fc: 15 },
+    slowc: { Ac: 1, Am: 0.6, fm: 2, fc: 3 },
+  };
+
+  const params = () => ({
+    Ac: +$('Ac').value, Am: +$('Am').value,
+    fm: +$('fm').value, fc: +$('fc').value, win: +$('win').value,
+  });
+
+  function setupCanvas(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+
+  function niceStep(range, target) {
+    const raw = range / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / mag;
+    return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag;
+  }
+
+  // Draws axes, grid and labels; returns coordinate mappers.
+  function drawAxes(ctx, w, h, { xMin, xMax, yMin, yMax, xLabel, yLabel }) {
+    const pad = { l: 52, r: 12, t: 8, b: 34 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const X = x => pad.l + (x - xMin) / (xMax - xMin) * pw;
+    const Y = y => pad.t + (1 - (y - yMin) / (yMax - yMin)) * ph;
+
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = COLORS.stroke;
+    ctx.fillStyle = COLORS.muted;
+
+    const xs = niceStep(xMax - xMin, 8);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xMin / xs) * xs; x <= xMax + 1e-9; x += xs) {
+      ctx.beginPath(); ctx.moveTo(X(x), pad.t); ctx.lineTo(X(x), pad.t + ph); ctx.stroke();
+      ctx.fillText(+x.toFixed(3), X(x), pad.t + ph + 4);
+    }
+    const ys = niceStep(yMax - yMin, 4);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yMin / ys) * ys; y <= yMax + 1e-9; y += ys) {
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(y)); ctx.lineTo(pad.l + pw, Y(y)); ctx.stroke();
+      ctx.fillText(+y.toFixed(2), pad.l - 6, Y(y));
+    }
+    if (yMin < 0 && yMax > 0) {
+      ctx.strokeStyle = COLORS.muted;
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(pad.l + pw, Y(0)); ctx.stroke();
+    }
+
+    ctx.fillStyle = COLORS.muted;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xLabel, pad.l + pw / 2, h);
+    ctx.save();
+    ctx.translate(11, pad.t + ph / 2); ctx.rotate(-Math.PI / 2);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
+    return { X, Y, pw, restore: () => ctx.restore() };
+  }
+
+  function drawCurve(ctx, X, Y, f, xMin, xMax, n, color, width = 1.5, dash = []) {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const x = xMin + (xMax - xMin) * i / n;
+      const px = X(x), py = Y(f(x));
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function timePlot(id, yLim, curves) {
+    const p = params();
+    const canvas = $(id);
+    const { ctx, w, h } = setupCanvas(canvas);
+    const ax = drawAxes(ctx, w, h, {
+      xMin: 0, xMax: p.win, yMin: -yLim, yMax: yLim,
+      xLabel: 'Time (ms)', yLabel: 'Amplitude',
+    });
+    // Enough samples to resolve the carrier: >= 40 per carrier cycle and >= 2 per pixel.
+    const n = Math.min(20000, Math.max(ax.pw * 2, Math.ceil(p.win * p.fc * 40)));
+    for (const c of curves) drawCurve(ctx, ax.X, ax.Y, c.f, 0, p.win, n, c.color, c.width, c.dash);
+    ax.restore();
+  }
+
+  function spectrumPlot(p, mu) {
+    const { ctx, w, h } = setupCanvas($('cSpec'));
+    const fMax = Math.max(p.fc + p.fm, 1) * 1.25 + 1;
+    const yMax = Math.max(p.Ac, p.Ac * mu / 2) * 1.2;
+    const ax = drawAxes(ctx, w, h, {
+      xMin: 0, xMax: fMax, yMin: 0, yMax,
+      xLabel: 'Frequency (kHz)', yLabel: 'Amplitude',
+    });
+    const lines = [
+      { f: p.fc, a: p.Ac, color: COLORS.carrier, label: 'f_c' },
+      { f: p.fc - p.fm, a: p.Ac * mu / 2, color: COLORS.am, label: 'LSB' },
+      { f: p.fc + p.fm, a: p.Ac * mu / 2, color: COLORS.am, label: 'USB' },
+    ];
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    for (const l of lines) {
+      // A negative-frequency sideband folds onto +|f| in a single-sided spectrum.
+      const f = Math.abs(l.f);
+      ctx.strokeStyle = l.color; ctx.fillStyle = l.color; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(ax.X(f), ax.Y(0)); ctx.lineTo(ax.X(f), ax.Y(l.a)); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ax.X(f), ax.Y(l.a), 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText(`${l.label} ${f.toFixed(1)}`, ax.X(f), ax.Y(l.a) - 5);
+    }
+    if (mu > 0) {
+      const y = ax.Y(yMax * 0.08);
+      ctx.strokeStyle = COLORS.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ax.X(p.fc - p.fm), y); ctx.lineTo(ax.X(p.fc + p.fm), y); ctx.stroke();
+      ctx.fillStyle = COLORS.muted;
+      ctx.fillText(`BW = 2f_m = ${(2 * p.fm).toFixed(1)} kHz`, ax.X(p.fc), y - 3);
+    }
+    ax.restore();
+  }
+
+  function render() {
+    const p = params();
+    const mu = p.Ac > 0 ? p.Am / p.Ac : 0;
+    const w = 2 * Math.PI;
+    const msg = t => Math.cos(w * p.fm * t);
+    const env = t => p.Ac * (1 + mu * msg(t));
+    // t in ms, f in kHz, so f*t is dimensionless cycles.
+    const s = t => env(t) * Math.cos(w * p.fc * t);
+
+    $('AcOut').textContent = p.Ac.toFixed(2);
+    $('AmOut').textContent = p.Am.toFixed(2);
+    $('fmOut').textContent = p.fm.toFixed(1) + ' kHz';
+    $('fcOut').textContent = p.fc.toFixed(1) + ' kHz';
+    $('winOut').textContent = p.win.toFixed(1) + ' ms';
+
+    const pc = p.Ac * p.Ac / 2, psb = p.Ac * p.Ac * mu * mu / 4;
+    $('mu').textContent = mu.toFixed(2);
+    $('emax').textContent = (p.Ac * (1 + mu)).toFixed(2);
+    $('emin').textContent = (p.Ac * (1 - mu)).toFixed(2);
+    $('bw').textContent = (2 * p.fm).toFixed(1) + ' kHz';
+    $('pc').textContent = pc.toFixed(3);
+    $('psb').textContent = psb.toFixed(3);
+    $('eff').textContent = (100 * psb / (pc + psb)).toFixed(1) + ' %';
+
+    const status = $('status');
+    if (mu > 1) {
+      status.className = 'status bad';
+      status.textContent = 'Over-modulation (μ > 1): the envelope crosses zero, the carrier phase reverses, and an envelope detector outputs a distorted message.';
+    } else if (p.fc < 5 * p.fm) {
+      status.className = 'status bad';
+      status.textContent = 'Carrier is not much faster than the message (f_c < 5 f_m): the envelope is poorly defined and sidebands crowd toward 0 Hz. Real systems use f_c >> f_m.';
+    } else if (mu === 1) {
+      status.className = 'status ok';
+      status.textContent = '100% modulation: the envelope just touches zero. Maximum efficiency without distortion (33.3 %).';
+    } else {
+      status.className = 'status ok';
+      status.textContent = 'Under-modulation (μ < 1): the envelope is a faithful copy of the message.';
+    }
+
+    const lim = Math.max(p.Ac * (1 + mu), p.Am, p.Ac) * 1.15 || 1;
+    timePlot('cMsg', lim, [{ f: t => p.Am * msg(t), color: COLORS.message, width: 2 }]);
+    timePlot('cCar', lim, [{ f: t => p.Ac * Math.cos(w * p.fc * t), color: COLORS.carrier, width: 1.2 }]);
+    timePlot('cAm', lim, [
+      { f: s, color: COLORS.am, width: 1.2 },
+      { f: env, color: COLORS.envelope, width: 1.5, dash: [6, 4] },
+      { f: t => -env(t), color: COLORS.envelope, width: 1.5, dash: [6, 4] },
+    ]);
+    timePlot('cDet', lim, [
+      { f: env, color: COLORS.envelope, width: 1.5, dash: [6, 4] },
+      { f: t => Math.abs(env(t)), color: COLORS.detected, width: 2.2 },
+    ]);
+    spectrumPlot(p, mu);
+  }
+
+  let frame = 0;
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; render(); }); };
+
+  inputs.forEach(el => el.addEventListener('input', schedule));
+  document.querySelectorAll('[data-preset]').forEach(btn => btn.addEventListener('click', () => {
+    const pr = PRESETS[btn.dataset.preset];
+    for (const k in pr) $(k).value = pr[k];
+    schedule();
+  }));
+  window.addEventListener('resize', schedule);
+  render();
+})();
+</script>
+</body>
+</html>

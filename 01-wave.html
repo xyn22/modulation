@@ -57,7 +57,7 @@
   </nav>
 
   <h1>Lesson 1: What is a wave?</h1>
-  <p class="muted">A wave is something that goes up and down, again and again, in a regular pattern. Only two numbers describe this simple wave.</p>
+  <p class="muted">A wave is something that goes up and down, again and again, in a regular pattern. Think of a vibrating guitar string, or the air pressure in front of a speaker. Only two numbers describe this simple wave.</p>
 
   <div class="panel">
     <canvas id="plot"></canvas>
@@ -77,7 +77,12 @@
   <div class="panel">
     <p><b style="color:var(--amp)">Amplitude</b> is how far the wave goes up (and down) from the middle line. In sound, bigger amplitude means louder.</p>
     <p><b style="color:var(--period)">Frequency</b> is how many full up-and-down cycles happen in one second, measured in hertz (Hz). In sound, higher frequency means a higher pitch.</p>
-    <p><b style="color:var(--period)">Period</b> is the time one full cycle takes. It is just 1 ÷ frequency: faster waves have shorter cycles.</p>
+    <p><b style="color:var(--period)">Period</b> is the time one full cycle takes. It is just 1 ÷ frequency: faster waves have shorter cycles. For example, at 2 Hz there are 2 cycles each second, so each cycle takes half a second (500 ms). The first cycle is highlighted in green on the graph.</p>
+  </div>
+
+  <div class="panel">
+    <b>Reading the formula</b>
+    <p>The formula under the graph, <b>y(t) = A · sin(2π · f · t)</b>, is just these ideas written as maths. For now, read it as "a wave whose height is <b style="color:var(--amp)">A</b> and which repeats <b style="color:var(--period)">f</b> times per second". You do not need to understand the 2π yet.</p>
   </div>
 
   <div class="panel">
@@ -86,6 +91,15 @@
       <li>Move only the amplitude slider. The wave gets taller or shorter, but the number of cycles stays the same.</li>
       <li>Move only the frequency slider. The height stays the same, but more cycles fit into the 1 second shown.</li>
       <li>Count the cycles on screen and check that the count equals the frequency.</li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <b>Where we are heading</b>
+    <ol>
+      <li><b>One wave (this lesson):</b> amplitude and frequency.</li>
+      <li><b>A slow wave and a fast wave side by side:</b> the "message" and the "carrier".</li>
+      <li><b>Making the fast wave's height follow the slow wave:</b> that is AM (amplitude modulation).</li>
     </ol>
   </div>
 

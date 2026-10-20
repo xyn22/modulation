@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sine and cosine on the unit circle</title>
+<style>
+  :root {
+    --bg: #111418;
+    --panel: #181c22;
+    --stroke: #2a3039;
+    --text: #e3e6ea;
+    --muted: #8b94a1;
+    --cos: #4fa3ff;
+    --sin: #ff8a4c;
+    --angle: #e8c547;
+    --radius: #e3e6ea;
+  }
+  body {
+    margin: 0 auto;
+    max-width: 1000px;
+    padding: 24px;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .views { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; align-items: center; }
+  @media (max-width: 750px) { .views { grid-template-columns: 1fr; } }
+  #circle { width: 100%; aspect-ratio: 1; display: block; touch-action: none; cursor: grab; }
+  #circle.dragging { cursor: grabbing; }
+  #graph { width: 100%; height: 300px; display: block; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 12px; }
+  .controls label { display: flex; gap: 8px; align-items: center; }
+  .slider { flex: 1 1 260px; }
+  .slider input { flex: 1; accent-color: var(--angle); }
+  output { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--angle); min-width: 48px; }
+  button {
+    background: var(--bg); color: var(--text); border: 1px solid var(--stroke);
+    border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  .readout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 750px) { .readout { grid-template-columns: 1fr; } }
+  .readout div { background: var(--bg); border: 1px solid var(--stroke); border-radius: 6px; padding: 8px 12px; }
+  .readout .big { font-size: 20px; font-weight: 600; }
+  .cos { color: var(--cos); }
+  .sin { color: var(--sin); }
+  .ang { color: var(--angle); }
+  ol, ul { padding-left: 20px; }
+  li { margin: 4px 0; }
+  table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--stroke); padding: 4px 12px; text-align: center; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); }
+  summary:hover { color: var(--text); }
+</style>
+</head>
+<body>
+  <h1>Sine and cosine on the unit circle</h1>
+  <p class="muted">The unit circle has its center at the origin and a radius of 1. Pick any point on it. Its <b class="cos">x coordinate is cos&nbsp;θ</b> and its <b class="sin">y coordinate is sin&nbsp;θ</b>, where θ is the angle measured counter-clockwise from the positive x-axis. Drag the point to see how they change.</p>
+
+  <div class="panel">
+    <div class="views">
+      <canvas id="circle"></canvas>
+      <canvas id="graph"></canvas>
+    </div>
+    <div class="controls">
+      <label class="slider">θ <input id="theta" type="range" min="0" max="360" step="15" value="30"> <output id="thetaOut"></output></label>
+      <label><input id="snap" type="checkbox" checked> Snap to multiples of 15°</label>
+      <button id="play">▶ Spin</button>
+    </div>
+    <div class="readout">
+      <div><span class="ang">Angle θ</span><div class="big ang" id="rAngle"></div><span class="muted" id="rQuad"></span></div>
+      <div><span class="cos">cos θ = x</span><div class="big cos" id="rCos"></div><span class="muted" id="rCosSign"></span></div>
+      <div><span class="sin">sin θ = y</span><div class="big sin" id="rSin"></div><span class="muted" id="rSinSign"></span></div>
+    </div>
+    <p class="muted" id="rIdentity"></p>
+  </div>
+
+  <div class="panel">
+    <h3>Why does this work?</h3>
+    <p>Drop a vertical line from the point to the x-axis and you get a right triangle. Its <b>hypotenuse</b> is the radius, which has length 1. From right-triangle trigonometry:</p>
+    <ul>
+      <li><span class="cos">cos θ</span> = adjacent ÷ hypotenuse = adjacent ÷ 1 = <b class="cos">the horizontal side</b> = x</li>
+      <li><span class="sin">sin θ</span> = opposite ÷ hypotenuse = opposite ÷ 1 = <b class="sin">the vertical side</b> = y</li>
+    </ul>
+    <p>Because the hypotenuse is 1, there is nothing to divide by: the sides <i>are</i> the cosine and sine. The circle also lets us go past 90°, where a right triangle alone no longer makes sense. The coordinates simply become negative.</p>
+    <p>The Pythagorean theorem on the same triangle gives the most important identity in trigonometry:
+      <b><span class="cos">cos²θ</span> + <span class="sin">sin²θ</span> = 1</b>. Check it in the readout above for any angle.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Special angles to remember</h3>
+    <table>
+      <tr><th>θ</th><th>0°</th><th>30°</th><th>45°</th><th>60°</th><th>90°</th></tr>
+      <tr><td class="cos">cos θ</td><td>1</td><td>√3/2 ≈ 0.87</td><td>√2/2 ≈ 0.71</td><td>1/2</td><td>0</td></tr>
+      <tr><td class="sin">sin θ</td><td>0</td><td>1/2</td><td>√2/2 ≈ 0.71</td><td>√3/2 ≈ 0.87</td><td>1</td></tr>
+    </table>
+    <p class="muted">Notice that the sine row is the cosine row read backwards: sin θ = cos(90° − θ).</p>
+  </div>
+
+  <div class="panel">
+    <h3>Try this</h3>
+    <ol>
+      <li>Set θ = 0°, 90°, 180° and 270°. Where is the point each time, and what are cos and sin?</li>
+      <li>Find two angles with sin θ = 1/2. (Hint: the point must be at height 1/2.)</li>
+      <li>Compare 30° and 150°. Which value stays the same and which changes sign? Why?</li>
+      <li>In which quadrants is cos θ negative? In which is sin θ negative?</li>
+      <li>Press <b>Spin</b> and watch the graph. Why are sine and cosine the same wave, just shifted by 90°?</li>
+    </ol>
+    <details>
+      <summary>Show answers</summary>
+      <ol>
+        <li>0°: (1, 0). 90°: (0, 1). 180°: (−1, 0). 270°: (0, −1). Cosine is the first number and sine is the second.</li>
+        <li>30° and 150°.</li>
+        <li>Sine stays 1/2, cosine changes from +√3/2 to −√3/2. The two points are mirror images across the y-axis: same height, opposite x.</li>
+        <li>cos θ &lt; 0 in quadrants II and III (left half). sin θ &lt; 0 in quadrants III and IV (bottom half).</li>
+        <li>Cosine starts at the top (1) and sine starts at 0. Sine reaches the top a quarter turn (90°) later, so cos θ = sin(θ + 90°).</li>
+      </ol>
+    </details>
+  </div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = {
+    stroke: css('--stroke'), muted: css('--muted'), text: css('--text'),
+    cos: css('--cos'), sin: css('--sin'), angle: css('--angle'), radius: css('--radius'),
+  };
+  const circle = $('circle'), graph = $('graph'), slider = $('theta'), snap = $('snap'), play = $('play');
+  const RAD = Math.PI / 180;
+  let theta = +slider.value;
+  let playing = false, lastTime = 0;
+
+  const EXACT = { 0: '0', 30: '1/2', 45: '√2/2', 60: '√3/2', 90: '1' };
+  function exact(deg, value, isSin) {
+    if (deg % 30 && deg % 45) return '';
+    let ref = deg % 180;
+    ref = Math.min(ref, 180 - ref);
+    const mag = EXACT[isSin ? ref : 90 - ref];
+    if (mag === '0') return '0';
+    return (value < 0 ? '−' : '') + mag;
+  }
+
+  function quadrant(deg) {
+    const d = deg % 360;
+    if (d % 90 === 0) return 'on an axis';
+    return 'quadrant ' + ['I', 'II', 'III', 'IV'][Math.floor(d / 90)];
+  }
+
+  function setupCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = '13px system-ui, sans-serif';
+    return { ctx, w, h };
+  }
+
+  function line(ctx, x1, y1, x2, y2, color, width, dash) {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function circleGeom() {
+    const w = circle.clientWidth, h = circle.clientHeight;
+    return { cx: w / 2, cy: h / 2, R: Math.min(w, h) / 2 - 36 };
+  }
+
+  function drawCircle() {
+    const { ctx, w, h } = setupCanvas(circle);
+    const { cx, cy, R } = circleGeom();
+    const c = Math.cos(theta * RAD), s = Math.sin(theta * RAD);
+    const px = cx + c * R, py = cy - s * R;
+
+    line(ctx, 8, cy, w - 8, cy, C.muted, 1);
+    line(ctx, cx, 8, cx, h - 8, C.muted, 1);
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('1', cx + R, cy + 4); ctx.fillText('−1', cx - R, cy + 4);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('1', cx + 6, cy - R - 8); ctx.fillText('−1', cx + 6, cy + R + 10);
+    ctx.fillText('x', w - 16, cy - 10); ctx.fillText('y', cx + 8, 14);
+    ctx.globalAlpha = 0.5; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    [['I', 1, -1], ['II', -1, -1], ['III', -1, 1], ['IV', 1, 1]].forEach(([q, sx, sy]) =>
+      ctx.fillText(q, cx + sx * R * 0.9, cy + sy * R * 0.9));
+    ctx.globalAlpha = 1; ctx.font = '13px system-ui, sans-serif';
+
+    ctx.strokeStyle = C.stroke; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+
+    // Canvas y points down, so a counter-clockwise math angle is drawn anticlockwise from 0 to -θ.
+    ctx.fillStyle = C.angle; ctx.globalAlpha = 0.15;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R * 0.22, 0, -theta * RAD, true); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.angle; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.22, 0, -theta * RAD, true); ctx.stroke();
+    const mid = theta / 2 * RAD;
+    ctx.fillStyle = C.angle; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('θ', cx + Math.cos(mid) * R * 0.32, cy - Math.sin(mid) * R * 0.32);
+
+    line(ctx, px, py, cx, py, C.sin, 1, [4, 4]);
+    line(ctx, cx, cy, px, cy, C.cos, 5);
+    line(ctx, px, cy, px, py, C.sin, 5);
+    line(ctx, cx, cy, px, py, C.radius, 2);
+
+    if (Math.abs(c) > 0.05 && Math.abs(s) > 0.05) {
+      const k = 10, dx = -Math.sign(c) * k, dy = Math.sign(s) * k;
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px + dx, cy); ctx.lineTo(px + dx, cy - dy); ctx.lineTo(px, cy - dy); ctx.stroke();
+    }
+
+    ctx.fillStyle = C.text; ctx.textAlign = 'center';
+    ctx.fillText('1', cx + c * R / 2 - s * 12, cy - s * R / 2 - c * 12);
+    ctx.fillStyle = C.cos; ctx.textBaseline = s >= 0 ? 'top' : 'bottom';
+    ctx.fillText('cos θ', cx + c * R / 2, cy + (s >= 0 ? 6 : -6));
+    ctx.fillStyle = C.sin; ctx.textBaseline = 'middle'; ctx.textAlign = c >= 0 ? 'left' : 'right';
+    ctx.fillText('sin θ', px + (c >= 0 ? 8 : -8), cy - s * R / 2);
+
+    ctx.fillStyle = C.angle;
+    ctx.beginPath(); ctx.arc(px, py, 9, 0, 2 * Math.PI); ctx.fill();
+    const label = `(${c.toFixed(2)}, ${s.toFixed(2)})`.replace(/-/g, '−');
+    const lw = ctx.measureText(label).width;
+    const lx = Math.min(Math.max(c >= 0 ? px + 12 : px - 12 - lw, 4), w - lw - 4);
+    ctx.fillStyle = C.text; ctx.textAlign = 'left'; ctx.textBaseline = s >= 0 ? 'bottom' : 'top';
+    ctx.fillText(label, lx, py + (s >= 0 ? -10 : 10));
+  }
+
+  function drawGraph() {
+    const { ctx, w, h } = setupCanvas(graph);
+    const pad = { l: 36, r: 12, t: 16, b: 32 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const X = d => pad.l + d / 360 * pw;
+    const Y = v => pad.t + (1 - (v + 1.15) / 2.3) * ph;
+
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let d = 0; d <= 360; d += 90) {
+      line(ctx, X(d), pad.t, X(d), pad.t + ph, C.stroke, 1);
+      ctx.fillText(d + '°', X(d), pad.t + ph + 6);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const v of [-1, 0, 1]) {
+      line(ctx, pad.l, Y(v), pad.l + pw, Y(v), v === 0 ? C.muted : C.stroke, 1);
+      ctx.fillText(v, pad.l - 8, Y(v));
+    }
+
+    const curve = (fn, color, upTo, width, alpha) => {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      for (let d = 0; d <= upTo; d += 1) {
+        const y = Y(fn(d * RAD));
+        d ? ctx.lineTo(X(d), y) : ctx.moveTo(X(d), y);
+      }
+      ctx.lineTo(X(upTo), Y(fn(upTo * RAD)));
+      ctx.stroke(); ctx.globalAlpha = 1;
+    };
+    curve(Math.cos, C.cos, 360, 1.5, 0.25);
+    curve(Math.sin, C.sin, 360, 1.5, 0.25);
+    curve(Math.cos, C.cos, theta, 3, 1);
+    curve(Math.sin, C.sin, theta, 3, 1);
+
+    const c = Math.cos(theta * RAD), s = Math.sin(theta * RAD);
+    line(ctx, X(theta), pad.t, X(theta), pad.t + ph, C.angle, 1, [4, 4]);
+    for (const [v, color] of [[c, C.cos], [s, C.sin]]) {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(X(theta), Y(v), 6, 0, 2 * Math.PI); ctx.fill();
+    }
+
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = C.cos; ctx.fillText('y = cos θ', pad.l + 8, pad.t - 12);
+    ctx.fillStyle = C.sin; ctx.fillText('y = sin θ', pad.l + 90, pad.t - 12);
+  }
+
+  function updateReadout() {
+    const d = Math.round(theta) % 360;
+    const c = Math.cos(theta * RAD), s = Math.sin(theta * RAD);
+    const isWhole = Math.abs(theta - Math.round(theta)) < 1e-9;
+    const fmt = v => (Math.abs(v) < 0.005 ? 0 : v).toFixed(3).replace('-', '−');
+    const ex = (v, isSin) => isWhole ? exact(d, v, isSin) : '';
+    const ec = ex(c, false), es = ex(s, true);
+    $('thetaOut').textContent = Math.round(theta) + '°';
+    $('rAngle').textContent = `${Math.round(theta)}° = ${(theta / 180).toFixed(2)}π rad`;
+    $('rQuad').textContent = quadrant(Math.round(theta));
+    $('rCos').textContent = fmt(c) + (ec && ec !== '0' && Math.abs(Math.abs(c) - 1) > 1e-9 ? `  (${ec})` : '');
+    $('rSin').textContent = fmt(s) + (es && es !== '0' && Math.abs(Math.abs(s) - 1) > 1e-9 ? `  (${es})` : '');
+    const sign = v => Math.abs(v) < 0.005 ? 'zero' : v > 0 ? 'positive' : 'negative';
+    $('rCosSign').textContent = sign(c);
+    $('rSinSign').textContent = sign(s);
+    $('rIdentity').textContent = `Check: cos²θ + sin²θ = ${fmt(c)}² + ${fmt(s)}² = ${(c * c + s * s).toFixed(3)}`;
+  }
+
+  function render() {
+    drawCircle();
+    drawGraph();
+    updateReadout();
+  }
+
+  function setTheta(deg) {
+    theta = deg;
+    slider.value = theta;
+    render();
+  }
+
+  function angleFromPointer(e) {
+    const r = circle.getBoundingClientRect();
+    const { cx, cy } = circleGeom();
+    let d = Math.atan2(cy - (e.clientY - r.top), e.clientX - r.left - cx) / RAD;
+    if (d < 0) d += 360;
+    return snap.checked ? Math.round(d / 15) * 15 % 360 : Math.round(d);
+  }
+
+  function stop() {
+    playing = false;
+    play.textContent = '▶ Spin';
+  }
+
+  let dragging = false;
+  const endDrag = () => { dragging = false; circle.classList.remove('dragging'); };
+  circle.addEventListener('pointerdown', e => {
+    stop();
+    dragging = true;
+    circle.classList.add('dragging');
+    setTheta(angleFromPointer(e));
+    circle.setPointerCapture(e.pointerId);
+  });
+  circle.addEventListener('pointermove', e => {
+    if (dragging) setTheta(angleFromPointer(e));
+  });
+  circle.addEventListener('pointerup', endDrag);
+  circle.addEventListener('pointercancel', endDrag);
+
+  slider.addEventListener('input', () => {
+    stop();
+    theta = +slider.value;
+    render();
+  });
+  snap.addEventListener('change', () => { slider.step = snap.checked ? 15 : 1; });
+
+  function tick(t) {
+    if (!playing) return;
+    const dt = lastTime ? (t - lastTime) / 1000 : 0;
+    lastTime = t;
+    theta = (theta + dt * 45) % 360;
+    slider.value = theta;
+    render();
+    requestAnimationFrame(tick);
+  }
+  play.addEventListener('click', () => {
+    if (playing) return stop();
+    playing = true; lastTime = 0;
+    if (theta >= 360) theta = 0;
+    play.textContent = '❚❚ Pause';
+    requestAnimationFrame(tick);
+  });
+
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>
